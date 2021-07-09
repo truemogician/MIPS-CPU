@@ -23,12 +23,22 @@ package Parameter;
 	parameter RegAddrWidth	 = GetMinWidth(RegCount);
 	parameter DataAddrWidth  = GetMinWidth(DataCapacity);
 	parameter InstrAddrWidth = GetMinWidth(InstrCapacity);
-	
-	typedef `LOGIC(DataWidth)		Data;
-	typedef `LOGIC(InstrWidth)		Instr;
-	typedef `LOGIC(RegAddrWidth)	RegAddr;
-	typedef `LOGIC(DataAddrWidth)	DataAddr;
-	typedef `LOGIC(InstrAddrWidth)	InstrAddr;
+
+	`define DECLARE_TYPE(typeName) typedef `LOGIC(typeName``Width) typeName
+	`define DECLARE_NULLABLE(typeName, hasValueName = hasValue, valueName = value)\
+	typedef struct packed{\
+		logic hasValue;\
+		typename value;\
+	} Nullable``typeName
+
+	`DECLARE_TYPE(Data);
+	`DECLARE_TYPE(Instr);
+	`DECLARE_TYPE(RegAddr);
+	`DECLARE_TYPE(DataAddr);
+	`DECLARE_TYPE(InstrAddr);
+	`DECLARE_NULLABLE(RegAddr);
+	`DECLARE_NULLABLE(DataAddr);
+	`DECLARE_NULLABLE(InstrAddr);
 
 	parameter Data ExceptionAddress = 32'h00000004;
 endpackage

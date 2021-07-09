@@ -14,10 +14,9 @@ endpackage
 
 package AluCode;
 	typedef enum `LOGIC(4){
-		NONE = 'z,
 		ADDU = 4'h0,
-		ADD  = 4'h2,
 		SUBU = 4'h1,
+		ADD  = 4'h2,
 		SUB  = 4'h3,
 		AND  = 4'h4,
 		OR   = 4'h5,
@@ -28,7 +27,8 @@ package AluCode;
 		SLT  = 4'hb,
 		SRA  = 4'hc,
 		SRL  = 4'hd,
-		SLL  = 4'b111?
+		SLL  = 4'he,
+		NONE = 4'hf
 	} AluCodeEnum;
 endpackage
 
@@ -77,7 +77,7 @@ endpackage
 
 package SpecCode;	//OpCode = 000000
 	typedef enum `LOGIC(6){
-		NONE	= 6'bzzzzzz,
+		NONE	= 6'b111111,
 		ADD		= 6'b100000,
 		ADDU	= 6'b100001,
 		SUB		= 6'b100010,
@@ -112,7 +112,7 @@ endpackage
 
 package RegimmCode;
 	typedef enum `LOGIC(5){
-		NONE	= 5'bzzzzz,
+		NONE	= 5'b11111,
 		BLTZ	= 5'b00000,
 		BGEZ	= 5'b00001
 	} RegimmCodeEnum;
@@ -120,7 +120,7 @@ endpackage
 
 package Cop0Code;		//OpCode = 0100??
 	typedef enum `LOGIC(6){
-		NONE	= 6'bzzzzzz,
+		NONE	= 6'b111111,
 		MFC0	= 6'bz00000,
 		MTC0	= 6'bz00100,
 		ERET	= 6'b011000,
@@ -135,7 +135,7 @@ endpackage
 
 package ExcCode;
 	typedef enum `LOGIC(5){
-		None	= 'z,
+		None	= 5'h1f,
 		Int		= 5'h00,
 		Mod		= 5'h01,
 		TLBL	= 5'h02,
@@ -161,7 +161,7 @@ endpackage
 
 package Spec2Code;	//OpCode = 011100
 	typedef enum `LOGIC(6){
-		NONE	= 6'bzzzzzz,
+		NONE	= 6'b111111,
 		CLZ		= 6'b100000,
 		CLO		= 6'b100001,
 		MUL		= 6'b000010

@@ -34,8 +34,8 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wData
 	ExcCodeEnum		excCode;
 	Spec2CodeEum	spec2Code;
 	AluCodeEnum		aluCode;
-	RegAddr			wRegAddr, rRegAddr1, rRegAddr2;
-	logic			hasWriteAddr, shamt, sext, jump, branch, load, store, mult, div, jal, isUnsigned;
+	NullableRegAddr	wRegAddr, rRegAddr[2];
+	logic			shamt, sext, jump, branch, load, store, mult, div, jal, isUnsigned;
 	`LOGIC(2)		lsLength;
 	Controller controller(
 		.instr,
@@ -49,8 +49,8 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wData
 		.aluCode,
 		.hasWriteAddr,
 		.wAddr(wRegAddr),
-		.rAddr1(rRegAddr1),
-		.rAddr2(rRegAddr2),
+		.rAddr1(rRegAddr[0]),
+		.rAddr2(rRegAddr[1]),
 		.immediate,
 		.shamt,
 		.sext,
@@ -86,11 +86,11 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wData
 			wRegData = high;
 		else if (specCode == SpecCode::MFLO)
 			wRegData = low;
-		else if (spec2Code === Spec2Code::MUL)
-			wRegData = `LOWW(product, DataWidth << 1);
-		else if (spec2Code =?= 6'b10000? === '1)	//CLZ, CLO
+		else if (spec2Code == Spec2Code::MUL)
+			wRegData = `LOW(product, DataWidth << 1);
+		else if (spec2Code ==? 6'b10000?)	//CLZ, CLO
 			wRegData = DataWidth - GetMsb(spec2Code[0] ? ~rRegData[0] : rRegData[0]) - 1;
-		else if (cop0Code === Cop0Code::MFC0)
+		else if (cop0Code == Cop0Code::MFC0)
 			wRegData = cp0;
 		else
 			wRegData = c;
@@ -99,10 +99,10 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wData
 		.enable,
 		.reset,
 		.clock,
-		.write((jal | hasWriteAddr) & wRegAddr !== '0),
-		.wAddr(opCode === OpCode::JAL ? `EXT(31, RegAddrWidth) : wRegAddr),
-		.rAddr1(rRegAddr1),
-		.rAddr2(rRegAddr2),
+		.write((jal | wRegAddr.hasValue) & wRegAddr != '0),
+		.wAddr(opCode == OpCode::JAL ? `EXT(31, RegAddrWidth) : wRegAddr.value),
+		.rAddr1(rRegAddr[0].value),
+		.rAddr2(rRegAddr[1].value),
 		.wData(wRegData),
 		.rData1(rRegData[0]),
 		.rData2(rRegData[1])
@@ -122,7 +122,7 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wData
 
 	wire zero, carry, negative, overflow;
 	assign a = shamt ? `EXT(immediate, DataWidth) : rRegData[0];
-	assign b = jump ? 'z : store | rRegAddr2 === 'z
+	assign b = jump ? 'z : store | rRegAddr[1].hasValue
 		? sext ? `SEXT(immediate, DataWidth) : `EXT(immediate, DataWidth)
 		: rRegData[1];
 	ALU #(DataWidth) alu(
@@ -137,7 +137,7 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wData
 	);
 
 	Multiplier #(DataWidth) multiplier(
-		.enable(enable & (mult | spec2Code === Spec2Code::MUL)),
+		.enable(enable & (mult | spec2Code == Spec2Code::MUL)),
 		.isUnsigned,
 		.multiplicand(rRegData[0]),
 		.multiplier(rRegData[1]),
@@ -156,23 +156,23 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wData
 		.enable,
 		.reset,
 		.clock,
-		.write(mult | div | spec2Code === Spec2Code::MUL | specCode === SpecCode::MTHI),
-		.wData(mult | spec2Code === Spec2Code::MUL ? `HIGHW(product, DataWidth << 1) : div ? remainder : rRegData[0]),
+		.write(mult | div | spec2Code == Spec2Code::MUL | specCode == SpecCode::MTHI),
+		.wData(mult | spec2Code == Spec2Code::MUL ? `HIGH(product, DataWidth << 1) : div ? remainder : rRegData[0]),
 		.rData(high)
 	);
 	Register #(DataWidth, 0, MemoryEdge) lowRegister(
 		.enable,
 		.reset,
 		.clock,
-		.write(mult | div | specCode === SpecCode::MTLO),
-		.wData(mult ? `LOWW(product, DataWidth << 1) : div ? quotient : rRegData[0]),
+		.write(mult | div | specCode == SpecCode::MTLO),
+		.wData(mult ? `LOW(product, DataWidth << 1) : div ? quotient : rRegData[0]),
 		.rData(low)
 	);
 
-	logic goto;
+	logic goto, eJump;
 	Data gotoAddr, epc;
 	always_comb begin
-		if (jump | epc !== 'z)
+		if (jump | eJump)
 			goto = '1;
 		else if (opCode == OpCode::REGIMM) begin
 			case (regimmCode)
@@ -191,7 +191,7 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wData
 			endcase
 		end
 	end
-	assign gotoAddr = ~goto ? 'z : epc !== 'z ? epc
+	assign gotoAddr = ~goto ? 'z : eJump ? epc
 		: opType == OpType::Register 
 		? rRegCache[0] : branch 
 			? pc + 4 + `SEXT(immediate[15 : 0] << 2, DataWidth)
@@ -215,6 +215,7 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wData
 		.addr(instr[15 : 11]),
 		.wData(rRegData[1]),
 		.rData(cp0),
+		.eJump,
 		.epc
 	);
 

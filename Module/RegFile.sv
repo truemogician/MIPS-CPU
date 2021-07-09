@@ -42,6 +42,6 @@ module RegFile #(
 				registers[wAddr] <= wData;
 		end
 	end
-	assign rData1 = ~enable | rAddr1 === 'z ? 'z : registers[rAddr1];
-	assign rData2 = ~enable | rAddr2 === 'z ? 'z : registers[rAddr2];
+	assign rData1 = ~enable ? 'z : registers[rAddr1];
+	assign rData2 = ~enable ? 'z : registers[rAddr2];
 endmodule

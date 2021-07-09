@@ -41,20 +41,20 @@ module ALU #(
 			end
 			AluCode::SLT:	c = $signed(a) < $signed(b) ? 1'b1 : 1'b0;
 			AluCode::SRA:	begin
-				carry = a === '0 ? 1'b0 : b[(a & ShiftMask) - 1];
+				carry = a == '0 ? 1'b0 : b[(a & ShiftMask) - 1];
 				c = $signed(b) >>> (a & ShiftMask);
 			end
 			AluCode::SRL:	begin
-				carry = a === '0 ? 1'b0 : b[(a & ShiftMask) - 1];
+				carry = a == '0 ? 1'b0 : b[(a & ShiftMask) - 1];
 				c = b >> (a & ShiftMask);
 			end
 			AluCode::SLL:	begin
-				carry = a === '0 ? 1'b0 : b[BitWidth - (a & ShiftMask)];
+				carry = a == '0 ? 1'b0 : b[BitWidth - (a & ShiftMask)];
 				c = b << (a & ShiftMask);
 			end
 			default: c = 'z;
 		endcase
-		zero = control === AluCode::NONE ? zero : control === AluCode::SLT || control === AluCode::SLTU ? a == b : c == '0;
-		negative = control === AluCode::NONE ? negative : control === AluCode::SLT ? `LSB(c) : `MSB(c);
+		zero = control == AluCode::NONE ? zero : control == AluCode::SLT || control == AluCode::SLTU ? a == b : c == '0;
+		negative = control == AluCode::NONE ? negative : control == AluCode::SLT ? `LSB(c) : `MSB(c);
 	end
 endmodule
