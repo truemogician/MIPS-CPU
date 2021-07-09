@@ -12,7 +12,7 @@ module Chip(enable, reset, clock);
 	InstrAddr	instrAddr;
 	Instr		instr;
 	DataAddr	dataAddr;
-	Data		wData, rData;
+	Data		wData, wDataMask, rData;
 	CPU cpu(
 		.enable,
 		.reset,
@@ -22,6 +22,7 @@ module Chip(enable, reset, clock);
 		.write,
 		.dataAddr,
 		.wData,
+		.wDataMask,
 		.rData
 	);
 
@@ -37,6 +38,7 @@ module Chip(enable, reset, clock);
 		.write,
 		.addr(dataAddr),
 		.wData,
+		.wDataMask,
 		.rData
 	);
 endmodule

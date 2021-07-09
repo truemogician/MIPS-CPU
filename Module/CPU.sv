@@ -13,7 +13,7 @@ import Spec2Code::*;
 import RegimmCode::*;
 import Function::GetMsb;
 import Parameter::*;
-module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, rData);
+module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wDataMask, rData);
 	input				enable;
 	input				reset;
 	input				clock;
@@ -22,6 +22,7 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, rData
 	output				write;
 	output	DataAddr	dataAddr;
 	output	Data		wData;
+	output	Data		wDataMask;
 	input	Data		rData;
 
 	`LOGIC(26)		immediate;
@@ -222,11 +223,12 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, rData
 	assign write = store;
 	assign dataAddr	= store | load ? c - DataOffset : 'z;
 	always_comb begin
+		wData = rRegData[0];
 		case (lsLength)
-			2'b11:		wData = rRegData[1];
-			2'b01:		wData = `ZEXTD(rRegData[1][(DataWidth >> 1) - 1 : 0], DataWidth >> 1);
-			2'b00:		wData = `ZEXT(rRegData[1][(DataWidth >> 2) - 1 : 0], DataWidth >> 2, DataWidth);
-			default:	wData = 'z;
+			2'b11:		wDataMask = '1;
+			2'b01:		wDataMask = `EXT(`ONE(DataWidth >> 1), DataWidth);
+			2'b00:		wDataMask = `EXT(`ONE(DataWidth >> 2), DataWidth);
+			default:	wDataMask = '0;
 		endcase
 	end
 endmodule
