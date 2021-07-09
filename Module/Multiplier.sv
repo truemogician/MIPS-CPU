@@ -24,8 +24,8 @@ module Multiplier #(
 	generate
 		for (i = 0; i < (BitWidth >> 1); ++i) begin
 			assign tmp[i + ((BitWidth >> 1) - 2)] = ~enable ? '0 
-				: (umultiplier[i << 1] ? (`EXT(umultiplicand, BitWidth) << (i << 1)) : '0)
-				+ (umultiplier[i << 1 | 1] ? (`EXT(umultiplicand, BitWidth) << (i << 1 | 1)) : '0);
+				: (umultiplier[i << 1] ? (`EXT(umultiplicand, BitWidth << 1) << (i << 1)) : '0)
+				+ (umultiplier[i << 1 | 1] ? (`EXT(umultiplicand, BitWidth << 1) << (i << 1 | 1)) : '0);
 		end
 		for (i = 0; i < ((BitWidth >> 1) - 2); ++i)
 			assign tmp[i] = tmp[i + 1 << 1] + tmp[i + 1 << 1 | 1];
