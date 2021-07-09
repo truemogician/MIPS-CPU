@@ -23,9 +23,9 @@ module Divider #(
 	T tmp[BitWidth - 1];
 	genvar i;
 	generate
-		assign subResult[0] = ~enable ? '0 : {`ZERO(BitWidth - 1), udividend[BitWidth - 1]} - udivisor;
+		assign subResult[0] = ~enable ? '0 : `EXT(`MSB(udividend), BitWidth) - udivisor;
 		assign uquotient[BitWidth - 1] = ~enable ? '0 : ~subResult[0][BitWidth];
-		assign tmp[0] = ~enable ? '0 : subResult[0][BitWidth] ? {`ZERO(BitWidth - 1), udividend[BitWidth - 1]} : subResult[0];
+		assign tmp[0] = ~enable ? '0 : subResult[0][BitWidth] ? `EXT(`MSB(udividend), BitWidth) : subResult[0];
 		for (i = 1; i < BitWidth; ++i) begin
 			assign subResult[i] = ~enable ? '0 : {tmp[i - 1], udividend[BitWidth - i - 1]} - udivisor;
 			assign uquotient[BitWidth - i - 1] = ~enable ? '0 : ~subResult[i][BitWidth];
