@@ -19,8 +19,7 @@ module ALU #(
 	output	bit		overflow = '0;
 	localparam ShiftMask = `ONE(GetMinWidth(BitWidth));
 	always_comb begin
-		unique0 case (control) inside
-			AluCode::NONE:	c = 'z;
+		unique case (control)
 			AluCode::ADDU:	{carry, c} = a + b;
 			AluCode::ADD:	begin
 				{carry, c} = a + b;
@@ -53,6 +52,7 @@ module ALU #(
 				carry = a === '0 ? 1'b0 : b[BitWidth - (a & ShiftMask)];
 				c = b << (a & ShiftMask);
 			end
+			default: c = 'z;
 		endcase
 		zero = control === AluCode::NONE ? zero : control === AluCode::SLT || control === AluCode::SLTU ? a == b : c == '0;
 		negative = control === AluCode::NONE ? negative : control === AluCode::SLT ? `LSB(c) : `MSB(c);

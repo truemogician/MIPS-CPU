@@ -23,7 +23,7 @@ package AluCode;
 		OR   = 4'h5,
 		XOR  = 4'h6,
 		NOR  = 4'h7,
-		LUI  = 4'b100?,
+		LUI  = 4'h8,
 		SLTU = 4'ha,
 		SLT  = 4'hb,
 		SRA  = 4'hc,
