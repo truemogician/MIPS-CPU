@@ -6,7 +6,7 @@
 import Cop0Code::*;
 import ExcCode::*;
 import Parameter::*;
-module CP0(enable, reset, clock, opCode, excCode, pc, addr, wData, rData, eJump, epc);
+module CP0(enable, reset, clock, opCode, excCode, pc, addr, wData, rData, epc);
 	typedef `LOGIC(5) Address;
 	input	wire			enable;
 	input	wire			reset;
@@ -17,10 +17,10 @@ module CP0(enable, reset, clock, opCode, excCode, pc, addr, wData, rData, eJump,
 	input	Address			addr;
 	input	Data			wData;
 	output	Data			rData;
-	output	logic			eJump;
-	output	Data			epc;
+	output	NullableData	epc;
 
 	Data[31 : 0] registers;
+	logic eJump;
 	localparam Address Status = 5'd12;
 	localparam Address Cause = 5'd13;
 	localparam Address EPC = 5'd14;
@@ -45,9 +45,13 @@ module CP0(enable, reset, clock, opCode, excCode, pc, addr, wData, rData, eJump,
 				if (i != Status)
 					registers[i] <= '0;
 			registers[Status] <= 32'h0000ff01;
+			epc <= '0;
 			statusCache <= '0;
 		end
 		else if (enable) begin
+			epc.hasValue <= eJump;
+			epc.value <= opCode == Cop0Code::ERET ? registers[EPC] + (InstrWidth >> 3)
+				: eJump ? ExceptionAddress + InstrOffset : '0;
 			case(opCode) inside
 				Cop0Code::MTC0:	registers[addr] <= wData;
 				Cop0Code::ERET: registers[Status] <= statusCache;
@@ -61,8 +65,5 @@ module CP0(enable, reset, clock, opCode, excCode, pc, addr, wData, rData, eJump,
 			endcase
 		end
 	end
-	assign epc = ~enable | reset ? 'z
-		: opCode == Cop0Code::ERET ? registers[EPC] + (InstrWidth >> 3)
-			: eJump ? ExceptionAddress + InstrOffset : 'z;
 	assign rData = enable & ~reset & opCode == Cop0Code::MFC0 ? registers[addr] : 'z;
 endmodule

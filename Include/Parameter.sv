@@ -36,6 +36,7 @@ package Parameter;
 	`DECLARE_TYPE(RegAddr);
 	`DECLARE_TYPE(DataAddr);
 	`DECLARE_TYPE(InstrAddr);
+	`DECLARE_NULLABLE(Data);
 	`DECLARE_NULLABLE(RegAddr);
 	`DECLARE_NULLABLE(DataAddr);
 	`DECLARE_NULLABLE(InstrAddr);
