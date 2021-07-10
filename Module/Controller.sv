@@ -85,8 +85,8 @@ module Controller(instr,
 	assign toHilo = specCode ==? 6'b0100?1;
 	assign lsLength = load | store ? DataLengthEnum'(opCode[1 : 0]) : DataLength::None;
 	assign jal = opCode == OpCode::JAL || specCode == SpecCode::JALR;
-	assign trap = opCode ==? 6'b110??? | regimmCode ==? 5'b01???;
-	assign exception = trap | opCode ==? 6'b00110?;
+	assign trap = specCode ==? 6'b110??? | regimmCode ==? 5'b01???;
+	assign exception = trap | specCode ==? 6'b00110?;
 	assign wAddr.hasValue = ~(store | mult | div | toHilo | branch | exception | (jump & specCode != SpecCode::JALR) | (instrType == InstrType::Coprocessor & instr[25 : 21] != '0));
 	assign wAddr.value =  wAddr.hasValue ? instrType == InstrType::Register | spec2Code ==? 6'b10000? ? rdAddr : rtAddr : '0;
 	assign rAddr1.hasValue = ~(shamt | fromHilo | instrType == InstrType::Jump | opCode == OpCode::LUI | (exception & ~trap));
