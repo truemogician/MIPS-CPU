@@ -48,7 +48,6 @@ module CP0(enable, reset, clock, opCode, excCode, pc, addr, wData, rData, eJump,
 			statusCache <= '0;
 		end
 		else if (enable) begin
-			epc <= opCode == Cop0Code::ERET ? registers[EPC] + (InstrWidth >> 3) : eJump ? ExceptionAddress + InstrOffset : 'z;
 			case(opCode) inside
 				Cop0Code::MTC0:	registers[addr] <= wData;
 				Cop0Code::ERET: registers[Status] <= statusCache;
@@ -62,5 +61,8 @@ module CP0(enable, reset, clock, opCode, excCode, pc, addr, wData, rData, eJump,
 			endcase
 		end
 	end
-	assign rData = enable & opCode == Cop0Code::MFC0 ? registers[addr] : 'z;
+	assign epc = ~enable | reset ? 'z
+		: opCode == Cop0Code::ERET ? registers[EPC] + (InstrWidth >> 3)
+			: eJump ? ExceptionAddress + InstrOffset : 'z;
+	assign rData = enable & ~reset & opCode == Cop0Code::MFC0 ? registers[addr] : 'z;
 endmodule
