@@ -28,7 +28,7 @@ package Parameter;
 	`define DECLARE_NULLABLE(typeName, hasValueName = hasValue, valueName = value)\
 	typedef struct packed{\
 		logic hasValue;\
-		typename value;\
+		typeName value;\
 	} Nullable``typeName
 
 	`DECLARE_TYPE(Data);
