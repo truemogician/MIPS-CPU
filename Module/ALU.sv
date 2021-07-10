@@ -23,7 +23,7 @@ module ALU #(
 			AluCode::ADDU:	{carry, c} = a + b;
 			AluCode::ADD:	begin
 				{carry, c} = a + b;
-				overflow = (~`MSB(a) ^ ~`MSB(b)) & (carry ^ `MSB(c));
+				overflow = (`MSB(a) ^ ~`MSB(b)) & (carry ^ `MSB(c));
 			end
 			AluCode::SUBU:	{carry, c} = a - b;
 			AluCode::SUB:	begin
