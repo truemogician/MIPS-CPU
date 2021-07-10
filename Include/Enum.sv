@@ -32,18 +32,28 @@ package AluCode;
 	} AluCodeEnum;
 endpackage
 
-package OpType;
+package InstrType;
 	typedef enum `BIT(2){
 		Register	= 2'b00,
 		Immediate	= 2'b01,
 		Jump		= 2'b10,
 		Coprocessor	= 2'b11
-	} OpTypeEnum;
+	} InstrTypeEnum;
+endpackage
+
+package OpIdentifier;
+	typedef enum `BIT(3){
+		OpCode		= 3'd0,
+		SpecCode	= 3'd1,
+		Spec2Code	= 3'd2,
+		RegimmCode	= 3'd3,
+		Cop0Code	= 3'd4
+	} OpIdentifierEnum;
 endpackage
 
 package OpCode;
 	typedef enum `LOGIC(6){
-		SPECIAL	= 6'b000000,	//OpType: Register
+		SPECIAL	= 6'b000000,	//InstrType: Register
 		SPECIAL2= 6'b011100,
 		REGIMM	= 6'b000001,
 		COP0	= 6'b010000,
@@ -121,8 +131,8 @@ endpackage
 package Cop0Code;		//OpCode = 0100??
 	typedef enum `LOGIC(6){
 		NONE	= 6'b111111,
-		MFC0	= 6'bz00000,
-		MTC0	= 6'bz00100,
+		MFC0	= 6'b000000,
+		MTC0	= 6'b000100,
 		ERET	= 6'b011000,
 		DERET	= 6'b011111,
 		TLBP	= 6'b001000,
