@@ -13,6 +13,7 @@ import Spec2Code::*;
 import RegimmCode::*;
 import Function::GetMsb;
 import Parameter::*;
+import DataLength::*;
 module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wDataMask, rData);
 	input				enable;
 	input				reset;
@@ -26,17 +27,16 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wData
 	input	Data		rData;
 
 	`LOGIC(26)		immediate;
-	InstrTypeEnum		instrType;
+	InstrTypeEnum	instrType;
 	OpCodeEnum		opCode;
 	SpecCodeEnum	specCode;
 	RegimmCodeEnum	regimmCode;
 	Cop0CodeEnum	cop0Code;
-	ExcCodeEnum		excCode;
 	Spec2CodeEum	spec2Code;
 	AluCodeEnum		aluCode;
+	DataLengthEnum	lsLength;
 	NullableRegAddr	wRegAddr, rRegAddr[2];
-	logic			shamt, sext, jump, branch, load, store, mult, div, jal, isUnsigned;
-	`LOGIC(2)		lsLength;
+	logic			shamt, sext, jump, branch, load, store, mult, div, jal, trap, isUnsigned;
 	Controller controller(
 		.instr,
 		.instrType,
@@ -44,7 +44,6 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wData
 		.specCode,
 		.regimmCode,
 		.cop0Code,
-		.excCode,
 		.spec2Code,
 		.aluCode,
 		.wAddr(wRegAddr),
@@ -61,7 +60,8 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wData
 		.isUnsigned,
 		.mult,
 		.div,
-		.jal
+		.jal,
+		.trap
 	);
 
 	Data a, b, c, wRegData, rRegData[2];
@@ -73,11 +73,11 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wData
 			wRegData = pc + 4;
 		else if (load) begin
 			case ({isUnsigned, lsLength}) inside
-				3'b?11:		wRegData = rData;
-				3'b001:		wRegData = `SEXT(rData[(DataWidth >> 1) - 1 : 0], DataWidth);
-				3'b101:		wRegData = `EXT(rData[(DataWidth >> 1) - 1 : 0], DataWidth);
-				3'b000:		wRegData = `SEXT(rData[(DataWidth >> 2) - 1 : 0], DataWidth);
-				3'b100:		wRegData = `EXT(rData[(DataWidth >> 2) - 1 : 0], DataWidth);
+				{1'b?, DataLength::Word}:		wRegData = rData;
+				{1'b0, DataLength::HalfWord}:	wRegData = `SEXT(rData[(DataWidth >> 1) - 1 : 0], DataWidth);
+				{1'b1, DataLength::HalfWord}:	wRegData = `EXT(rData[(DataWidth >> 1) - 1 : 0], DataWidth);
+				{1'b0, DataLength::Byte}:		wRegData = `SEXT(rData[(DataWidth >> 2) - 1 : 0], DataWidth);
+				{1'b1, DataLength::Byte}:		wRegData = `EXT(rData[(DataWidth >> 2) - 1 : 0], DataWidth);
 				default:	wRegData = 'z;
 			endcase
 		end
@@ -204,6 +204,30 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wData
 		.pc
 	);
 
+	logic trapped;
+	ExcCodeEnum excCode;
+	always_comb begin
+		if (trap) begin
+			unique case({specCode, regimmCode}) inside
+				{SpecCode::TEQ,	RegimmCode::NONE}, {SpecCode::NONE,	RegimmCode::TEQI }: trapped = zero;
+				{SpecCode::TNE,	RegimmCode::NONE}, {SpecCode::NONE,	RegimmCode::TNEI }: trapped = ~zero;
+				{SpecCode::TLT,	RegimmCode::NONE}, {SpecCode::NONE,	RegimmCode::TLTI }: trapped = negative;
+				{SpecCode::TLTU,RegimmCode::NONE}, {SpecCode::NONE,	RegimmCode::TLTIU}: trapped = carry;
+				{SpecCode::TGE,	RegimmCode::NONE}, {SpecCode::NONE,	RegimmCode::TGEI }: trapped = ~negative;
+				{SpecCode::TGEU,RegimmCode::NONE}, {SpecCode::NONE,	RegimmCode::TGEIU}: trapped = ~carry;
+				default: trapped = '0;
+			endcase
+			excCode = trapped ? ExcCode::Tr : ExcCode::None;
+		end
+		else if (opCode == OpCode::SPECIAL)
+			unique case(specCode)
+				SpecCode::SYSCALL:	excCode = ExcCode::Sys;
+				SpecCode::BREAK:	excCode = ExcCode::Bp;
+				default: 			excCode = ExcCode::None;
+			endcase
+		else
+			excCode = ExcCode::None;
+	end
 	CP0 coprocessor0(
 		.enable,
 		.reset,
@@ -224,10 +248,10 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wData
 	always_comb begin
 		wData = rRegData[1];
 		case (lsLength)
-			2'b11:		wDataMask = '1;
-			2'b01:		wDataMask = `EXT(`ONE(DataWidth >> 1), DataWidth);
-			2'b00:		wDataMask = `EXT(`ONE(DataWidth >> 2), DataWidth);
-			default:	wDataMask = '0;
+			DataLength::Word:		wDataMask = '1;
+			DataLength::HalfWord:	wDataMask = `EXT(`ONE(DataWidth >> 1), DataWidth);
+			DataLength::Byte:		wDataMask = `EXT(`ONE(DataWidth >> 2), DataWidth);
+			default:				wDataMask = '0;
 		endcase
 	end
 endmodule

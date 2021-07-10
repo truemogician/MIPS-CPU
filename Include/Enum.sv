@@ -12,6 +12,15 @@ package ClockEdge;
 	} ClockEdgeEnum;
 endpackage
 
+package DataLength;
+	typedef enum `LOGIC(2){
+		Byte	= 2'b00,
+		HalfWord= 2'b01,
+		Word	= 2'b11,
+		None	= 2'b10
+	} DataLengthEnum;
+endpackage
+
 package AluCode;
 	typedef enum `LOGIC(4){
 		ADDU = 4'h0,
@@ -80,8 +89,7 @@ package OpCode;
 		BEQ		= 6'b000100,
 		BNE		= 6'b000101,
 		BLEZ	= 6'b000110,
-		BGTZ	= 6'b000111,
-		CACHE	= 6'b101111
+		BGTZ	= 6'b000111
 	} OpCodeEnum;
 endpackage
 
@@ -116,7 +124,12 @@ package SpecCode;	//OpCode = 000000
 		MTLO	= 6'b010011,
 		SYSCALL	= 6'b001100,
 		BREAK	= 6'b001101,
-		TEQ		= 6'b110100
+		TEQ		= 6'b110100,
+		TNE		= 6'b110110,
+		TLT		= 6'b110010,
+		TLTU	= 6'b110011,
+		TGE		= 6'b110000,
+		TGEU	= 6'b110001
 	} SpecCodeEnum;
 endpackage
 
@@ -124,7 +137,13 @@ package RegimmCode;
 	typedef enum `LOGIC(5){
 		NONE	= 5'b11111,
 		BLTZ	= 5'b00000,
-		BGEZ	= 5'b00001
+		BGEZ	= 5'b00001,
+		TEQI	= 5'b01100,
+		TNEI	= 5'b01110,
+		TLTI	= 5'b01010,
+		TLTIU	= 5'b01011,
+		TGEI	= 5'b01000,
+		TGEIU	= 5'b01001
 	} RegimmCodeEnum;
 endpackage
 
