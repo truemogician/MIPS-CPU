@@ -4,7 +4,7 @@
 `include "../Include/Parameter.sv"
 
 import AluCode::*;
-import OpType::*;
+import InstrType::*;
 import OpCode::*;
 import SpecCode::*;
 import Cop0Code::*;
@@ -26,7 +26,7 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wData
 	input	Data		rData;
 
 	`LOGIC(26)		immediate;
-	OpTypeEnum		opType;
+	InstrTypeEnum		instrType;
 	OpCodeEnum		opCode;
 	SpecCodeEnum	specCode;
 	RegimmCodeEnum	regimmCode;
@@ -39,7 +39,7 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wData
 	`LOGIC(2)		lsLength;
 	Controller controller(
 		.instr,
-		.opType,
+		.instrType,
 		.opCode,
 		.specCode,
 		.regimmCode,
@@ -47,7 +47,6 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wData
 		.excCode,
 		.spec2Code,
 		.aluCode,
-		.hasWriteAddr,
 		.wAddr(wRegAddr),
 		.rAddr1(rRegAddr[0]),
 		.rAddr2(rRegAddr[1]),
@@ -99,7 +98,7 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wData
 		.enable,
 		.reset,
 		.clock,
-		.write((jal | wRegAddr.hasValue) & wRegAddr != '0),
+		.write(jal | (wRegAddr.hasValue & wRegAddr.value != '0)),
 		.wAddr(opCode == OpCode::JAL ? `EXT(31, RegAddrWidth) : wRegAddr.value),
 		.rAddr1(rRegAddr[0].value),
 		.rAddr2(rRegAddr[1].value),
@@ -122,7 +121,7 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wData
 
 	wire zero, carry, negative, overflow;
 	assign a = shamt ? `EXT(immediate, DataWidth) : rRegData[0];
-	assign b = jump ? 'z : store | rRegAddr[1].hasValue
+	assign b = jump ? 'z : store | ~rRegAddr[1].hasValue
 		? sext ? `SEXT(immediate, DataWidth) : `EXT(immediate, DataWidth)
 		: rRegData[1];
 	ALU #(DataWidth) alu(
@@ -169,39 +168,39 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wData
 		.rData(low)
 	);
 
-	logic goto, eJump;
-	Data gotoAddr, epc;
+	NullableData gotoAddr, epc;
 	always_comb begin
-		if (jump | eJump)
-			goto = '1;
+		if (jump | epc.hasValue)
+			gotoAddr.hasValue = '1;
 		else if (opCode == OpCode::REGIMM) begin
 			case (regimmCode)
-				RegimmCode::BLTZ:	goto = rRegData[0][DataWidth - 1];
-				RegimmCode::BGEZ:	goto = ~rRegData[0][DataWidth - 1];
-				default:			goto = '0;
+				RegimmCode::BLTZ:	gotoAddr.hasValue = rRegData[0][DataWidth - 1];
+				RegimmCode::BGEZ:	gotoAddr.hasValue = ~rRegData[0][DataWidth - 1];
+				default:			gotoAddr.hasValue = '0;
 			endcase
 		end
 		else begin
 			case (opCode)
-				OpCode::BEQ:	goto = zero;
-				OpCode::BNE:	goto = ~zero;
-				OpCode::BLEZ:	goto = rRegData[0][DataWidth - 1] | zero;
-				OpCode::BGTZ:	goto = ~rRegData[0][DataWidth - 1] & ~zero;
-				default:		goto = '0;
+				OpCode::BEQ:	gotoAddr.hasValue = zero;
+				OpCode::BNE:	gotoAddr.hasValue = ~zero;
+				OpCode::BLEZ:	gotoAddr.hasValue = rRegData[0][DataWidth - 1] | zero;
+				OpCode::BGTZ:	gotoAddr.hasValue = ~rRegData[0][DataWidth - 1] & ~zero;
+				default:		gotoAddr.hasValue = '0;
 			endcase
 		end
 	end
-	assign gotoAddr = ~goto ? 'z : eJump ? epc
-		: opType == OpType::Register 
-		? rRegCache[0] : branch 
-			? pc + 4 + `SEXT(immediate[15 : 0] << 2, DataWidth)
-			: {pc[31 : 28], immediate << 2};
+	assign gotoAddr.value = ~gotoAddr.hasValue ? 'z
+		: epc.hasValue ? epc.value
+			: instrType == InstrType::Register 
+			? rRegCache[0] : branch 
+				? pc + 4 + `SEXT(immediate[15 : 0] << 2, DataWidth)
+				: {pc[31 : 28], immediate << 2};
 	PC #(DataWidth, InstrWidth, InstrOffset, PCEdge) programCounter(
 		.enable,
 		.reset,
 		.clock,
-		.goto,
-		.addr(gotoAddr),
+		.goto(gotoAddr.hasValue),
+		.addr(gotoAddr.value),
 		.pc
 	);
 
@@ -215,7 +214,6 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wData
 		.addr(instr[15 : 11]),
 		.wData(rRegData[1]),
 		.rData(cp0),
-		.eJump,
 		.epc
 	);
 
@@ -224,7 +222,7 @@ module CPU(enable, reset, clock, instrAddr, instr, write, dataAddr, wData, wData
 	assign write = store;
 	assign dataAddr	= store | load ? c - DataOffset : 'z;
 	always_comb begin
-		wData = rRegData[0];
+		wData = rRegData[1];
 		case (lsLength)
 			2'b11:		wDataMask = '1;
 			2'b01:		wDataMask = `EXT(`ONE(DataWidth >> 1), DataWidth);
