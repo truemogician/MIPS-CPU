@@ -22,29 +22,25 @@ module DataMemory #(
 	input	Data	wDataMask;
 	output	Data	rData;
 
-	`BIT(Capacity << 3) data;
-	`WIRE(AddrWidth + 3) bitAddr = `EXT(addr, AddrWidth + 3) << 3;
-	assign rData = ~enable | write ? 'z : data[bitAddr +: BitWidth];
+	Data data[Capacity];
+	//`WIRE(AddrWidth + 3) bitAddr = `EXT(addr, AddrWidth + 3) << 3;
+	assign rData = ~enable | reset | write ? 'z : data[addr];
 	if (Edge == ClockEdge::Rising) begin
 		always_ff @(posedge clock or posedge reset) begin
 			if (reset)
-				data <= '0;
+				for (int i = 0; i < Capacity; ++i)
+					data[i] <= '0;
 			else if (enable & write)
-				for (int i = 0; i < BitWidth; ++i) begin
-					if (wDataMask[i])
-						data[bitAddr + i] <= wData[i];
-				end
+				data[addr] <= (wData & wDataMask) | (data[addr] & ~wDataMask);
 		end
 	end
 	else begin
 		always_ff @(negedge clock or posedge reset) begin
 			if (reset)
-				data <= '0;
+				for (int i = 0; i < Capacity; ++i)
+					data[i] <= '0;
 			else if (enable & write)
-				for (int i = 0; i < BitWidth; ++i) begin
-					if (wDataMask[i])
-						data[bitAddr + i] <= wData[i];
-				end
+				data[addr] <= (wData & wDataMask) | (data[addr] & ~wDataMask);
 		end
 	end
 endmodule
